@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Skenes Contact Point Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0c0d10;
+    --panel:#14161b;
+    --panel2:#1a1d24;
+    --line:#262a33;
+    --line2:#343945;
+    --txt:#e7e9ee;
+    --dim:#8b8f9a;
+    --dim2:#5a5e69;
+    --gold:#fdb827;       /* Pirates gold */
+    --gold-dim:#8a6515;
+    --hot:#e23a3a;        /* damage */
+    --cool:#2bb3c6;       /* safe contact */
+    --warn:#f0883e;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);font-family:Inter,system-ui,sans-serif;font-size:14px;-webkit-font-smoothing:antialiased}
+  body{min-height:100vh;background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(253,184,39,.05), transparent 60%),
+    radial-gradient(800px 500px at -10% 100%, rgba(43,179,198,.04), transparent 60%),
+    var(--bg);
+  }
+  .mono{font-family:'JetBrains Mono',monospace}
+  .display{font-family:Fraunces,Georgia,serif;letter-spacing:-.02em}
+
+  /* HEADER */
+  header{
+    padding:18px 24px 14px;
+    border-bottom:1px solid var(--line);
+    display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;
+  }
+  .title h1{
+    margin:0;font-family:Fraunces,serif;font-weight:800;font-size:28px;letter-spacing:-.03em;line-height:1;
+  }
+  .title h1 .accent{color:var(--gold)}
+  .title .sub{margin-top:6px;color:var(--dim);font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+  .meta{font-size:11px;color:var(--dim);text-align:right;line-height:1.5}
+  .meta .mono{color:var(--txt)}
+
+  /* SELECTORS */
+  .controls{
+    display:flex;gap:12px;padding:14px 24px;border-bottom:1px solid var(--line);
+    flex-wrap:wrap;align-items:center;
+    background:linear-gradient(180deg, rgba(255,255,255,.01), transparent);
+  }
+  .group{display:flex;align-items:center;gap:8px}
+  .group .lbl{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim2);font-weight:600}
+  .pillset{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:3px}
+  .pill{
+    border:0;background:transparent;color:var(--dim);padding:6px 11px;border-radius:6px;cursor:pointer;
+    font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;letter-spacing:.02em;
+    transition:all .15s ease;
+  }
+  .pill:hover{color:var(--txt)}
+  .pill.active{background:var(--gold);color:#1a1300;font-weight:700}
+  .pill.hand-l.active{background:var(--cool);color:#001216}
+  .pill.hand-r.active{background:var(--hot);color:#1a0202}
+
+  /* GRID */
+  main{padding:18px 24px 40px;display:grid;gap:14px;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "stats stats"
+      "zone contact"
+      "depth depth";
+  }
+  @media (max-width: 880px){
+    main{grid-template-columns:1fr;grid-template-areas:"stats" "zone" "contact" "depth"}
+  }
+  .panel{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;position:relative;
+  }
+  .panel h2{
+    font-family:Fraunces,serif;font-weight:600;font-size:15px;margin:0 0 2px;letter-spacing:-.01em;
+  }
+  .panel .ph-sub{font-size:11px;color:var(--dim);margin-bottom:14px;letter-spacing:.03em}
+  .panel .ph-sub b{color:var(--gold);font-weight:600}
+
+  /* STATS PANEL */
+  .panel-stats{grid-area:stats;padding:14px 18px}
+  .stats-row{display:grid;grid-template-columns:repeat(7,1fr);gap:14px;align-items:end}
+  @media (max-width: 880px){.stats-row{grid-template-columns:repeat(3,1fr);gap:10px}}
+  .stat{padding:6px 0}
+  .stat .k{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim2);font-weight:600;margin-bottom:4px}
+  .stat .v{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1}
+  .stat .vsub{font-size:10.5px;color:var(--dim);margin-top:3px;font-family:'JetBrains Mono',monospace}
+  .stat.hot .v{color:var(--hot)}
+  .stat.cool .v{color:var(--cool)}
+  .stat.gold .v{color:var(--gold)}
+
+  /* READ-OUT */
+  .readout{
+    grid-column:1/-1;background:linear-gradient(135deg, rgba(253,184,39,.08), rgba(253,184,39,0));
+    border:1px solid rgba(253,184,39,.25);
+    border-radius:10px;padding:12px 16px;margin-top:6px;
+    font-family:Fraunces,serif;font-size:14px;letter-spacing:-.005em;line-height:1.45;
+  }
+  .readout .tag{
+    display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--gold);font-weight:700;margin-right:8px;vertical-align:1px;
+  }
+  .readout b{color:var(--gold);font-weight:600}
+
+  /* CANVASES */
+  .panel-zone{grid-area:zone}
+  .panel-contact{grid-area:contact}
+  .panel-depth{grid-area:depth}
+  canvas{display:block;width:100%;height:auto}
+  .canvas-wrap{position:relative;width:100%}
+  .legend{display:flex;gap:14px;font-size:10.5px;color:var(--dim);margin-top:10px;flex-wrap:wrap;align-items:center;font-family:'JetBrains Mono',monospace}
+  .legend .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+  .legend .grad{display:inline-block;width:90px;height:8px;border-radius:2px;
+    background:linear-gradient(90deg, #2bb3c6, #4a5a72, #e23a3a);
+    vertical-align:0;margin:0 6px}
+
+  .footer{padding:20px 24px;font-size:10.5px;color:var(--dim2);text-align:right;font-family:'JetBrains Mono',monospace;letter-spacing:.04em}
+  .footer .dot{color:var(--gold-dim);padding:0 6px}
+
+  /* sample-size warning */
+  .thin{color:var(--warn) !important}
+  .thin-flag{font-size:10px;color:var(--warn);font-family:'JetBrains Mono',monospace;letter-spacing:.04em;margin-left:8px;vertical-align:1px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title">
+    <h1>Skenes <span class="accent">Contact Point</span> Lab</h1>
+    <div class="sub">Where they hit it · How hard · What that buys you</div>
+  </div>
+  <div class="meta">
+    <div>Data <span class="mono" id="meta-range">—</span></div>
+    <div><span class="mono" id="meta-pitches">—</span> pitches · <span class="mono" id="meta-bip">—</span></div>
+    <div style="color:var(--dim2)">Source: Statcast bat tracking</div>
+  </div>
+</header>
+
+<div class="controls">
+  <div class="group">
+    <span class="lbl">Pitch</span>
+    <div class="pillset" id="pitch-pills"></div>
+  </div>
+  <div class="group">
+    <span class="lbl">vs</span>
+    <div class="pillset" id="hand-pills">
+      <button class="pill hand-l active" data-h="L">LHH</button>
+      <button class="pill hand-r" data-h="R">RHH</button>
+    </div>
+  </div>
+</div>
+
+<main>
+
+  <section class="panel panel-stats">
+    <div class="stats-row" id="stats-row"></div>
+    <div class="readout" id="readout"><span class="tag">Read</span><span id="readout-body">—</span></div>
+  </section>
+
+  <section class="panel panel-zone">
+    <h2>Pitch Location · Damage</h2>
+    <div class="ph-sub">5×5 grid · cell color = <b>xwOBA on contact</b> · cell size = pitch count. Catcher's POV.</div>
+    <div class="canvas-wrap"><canvas id="zone-canvas" width="560" height="560"></canvas></div>
+    <div class="legend">
+      <span><span class="grad"></span>weak <span style="margin:0 6px"></span> .200 — .350 — .500+ <span style="margin:0 6px"></span> damage</span>
+      <span style="margin-left:auto"><span class="sw" style="background:#fdb827;opacity:.6"></span>strike zone</span>
+    </div>
+  </section>
+
+  <section class="panel panel-contact">
+    <h2>Contact Point Distribution</h2>
+    <div class="ph-sub">Where bat met ball · top-down view · <b>up</b> = out in front of batter · <b>down</b> = jammed deep</div>
+    <div class="canvas-wrap"><canvas id="contact-canvas" width="560" height="560"></canvas></div>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--gold)"></span>centroid</span>
+      <span><span class="sw" style="background:var(--cool)"></span>weak contact (xwOBA &lt; .300)</span>
+      <span><span class="sw" style="background:var(--hot)"></span>damage (xwOBA ≥ .500)</span>
+    </div>
+  </section>
+
+  <section class="panel panel-depth">
+    <h2>Damage as a Function of Contact Depth</h2>
+    <div class="ph-sub">xwOBA on contact across the intercept-Y axis. <b>Deeper contact ⇢ left.</b> Bars = BIP count. Line = mean xwOBA per bin.</div>
+    <div class="canvas-wrap"><canvas id="depth-canvas" width="1120" height="320"></canvas></div>
+  </section>
+
+</main>
+
+<div class="footer">Skenes Contact Point Lab <span class="dot">●</span> built from Statcast intercept data <span class="dot">●</span> private use</div>
+
+<script>
+const PITCH_ORDER = ['FF','FS','SI','CH','SL','ST','CU'];
+let DATA = null;
+let STATE = { pitch: 'FF', hand: 'L' };
+
+async function init(){
+  const r = await fetch('skenes_data.json');
+  DATA = await r.json();
+  renderMeta();
+  renderPills();
+  render();
+  window.addEventListener('resize', () => render());
+}
+
+function renderMeta(){
+  document.getElementById('meta-range').textContent = `${DATA.meta.date_min} → ${DATA.meta.date_max}`;
+  document.getElementById('meta-pitches').textContent = DATA.meta.total_pitches.toLocaleString();
+  const tr = DATA.meta.total_bip_tracked;
+  const bip = DATA.meta.total_bip;
+  document.getElementById('meta-bip').textContent =
+    tr != null ? `${bip.toLocaleString()} BIP · ${tr.toLocaleString()} tracked` : `${bip.toLocaleString()} BIP`;
+}
+
+function renderPills(){
+  const wrap = document.getElementById('pitch-pills');
+  wrap.innerHTML = '';
+  for (const p of PITCH_ORDER){
+    if (!DATA.pitch_names[p]) continue;
+    const b = document.createElement('button');
+    b.className = 'pill' + (p===STATE.pitch?' active':'');
+    b.textContent = p;
+    b.title = DATA.pitch_names[p];
+    b.onclick = () => { STATE.pitch = p; refreshPills(); render(); };
+    wrap.appendChild(b);
+  }
+  document.querySelectorAll('#hand-pills .pill').forEach(el => {
+    el.onclick = () => { STATE.hand = el.dataset.h; refreshPills(); render(); };
+  });
+}
+function refreshPills(){
+  document.querySelectorAll('#pitch-pills .pill').forEach(el => el.classList.toggle('active', el.textContent===STATE.pitch));
+  document.querySelectorAll('#hand-pills .pill').forEach(el => el.classList.toggle('active', el.dataset.h===STATE.hand));
+}
+
+// ---------- helpers ----------
+function damageColor(xw, alpha=1){
+  // cool -> mid -> hot scale; null = neutral grey
+  if (xw == null || isNaN(xw)) return `rgba(120,120,130,${alpha*0.25})`;
+  const t = Math.max(0, Math.min(1, (xw - 0.200) / (0.550 - 0.200)));
+  // 3-stop gradient
+  const stops = [
+    [43,179,198],   // cool
+    [180,180,140],  // mid
+    [226,58,58]     // hot
+  ];
+  let c;
+  if (t < 0.5){
+    const u = t/0.5;
+    c = stops[0].map((v,i)=> v + (stops[1][i]-v)*u);
+  } else {
+    const u = (t-0.5)/0.5;
+    c = stops[1].map((v,i)=> v + (stops[2][i]-v)*u);
+  }
+  return `rgba(${c[0]|0},${c[1]|0},${c[2]|0},${alpha})`;
+}
+
+function fmtPct(v, dp=0){ return v==null?'—':(100*v).toFixed(dp)+'%'; }
+function fmt(v, dp=2){ return v==null?'—':v.toFixed(dp); }
+
+function setupCanvas(canvas){
+  const ratio = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * ratio;
+  canvas.height = rect.height * ratio;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(ratio,0,0,ratio,0,0);
+  return { ctx, w: rect.width, h: rect.height };
+}
+
+// ---------- stats panel ----------
+function render(){
+  refreshPills();
+  const cell = DATA.cells.find(c => c.pitch_type===STATE.pitch && c.stand===STATE.hand);
+  renderStats(cell);
+  renderReadout(cell);
+  renderZone();
+  renderContact();
+  renderDepth();
+}
+
+function renderStats(c){
+  const row = document.getElementById('stats-row');
+  const thin = c && (c.bip_tracked || c.bip) < 25;
+  const make = (k, v, vsub, cls='') => `
+    <div class="stat ${cls}">
+      <div class="k">${k}</div>
+      <div class="v ${thin && k.includes('xwOBA') ? 'thin':''}">${v}</div>
+      <div class="vsub">${vsub||''}</div>
+    </div>`;
+  if (!c){ row.innerHTML = '<div class="stat"><div class="k">no data</div></div>'; return; }
+  const evCol = c.mean_ev != null ? (c.mean_ev >= 90 ? 'hot' : c.mean_ev <= 85 ? 'cool' : '') : '';
+  const xwCol = c.xwobacon != null ? (c.xwobacon >= 0.380 ? 'hot' : c.xwobacon <= 0.280 ? 'cool' : '') : '';
+  const depthCol = c.mean_iy != null ? (c.mean_iy <= 27 ? 'cool' : c.mean_iy >= 35 ? 'hot' : '') : '';
+  const tracked = c.bip_tracked != null ? `${c.bip_tracked} tracked` : 'in play';
+  const bipSub = thin ? '<span class="thin">thin sample</span>' : tracked;
+  row.innerHTML =
+    make('Pitches', c.pitches.toLocaleString(), `${c.swings} swings`, 'gold') +
+    make('Whiff%', fmtPct(c.whiff_pct,1), `${c.whiffs} / ${c.swings}`) +
+    make('BIP', c.bip.toLocaleString(), bipSub) +
+    make('xwOBAcon', fmt(c.xwobacon,3), 'damage on contact', xwCol) +
+    make('Avg EV', c.mean_ev==null?'—':c.mean_ev.toFixed(1), 'mph', evCol) +
+    make('Contact Depth', c.mean_iy==null?'—':c.mean_iy.toFixed(1)+'″', c.mean_iy<=27?'deep / jammed':c.mean_iy>=35?'out front':'neutral', depthCol) +
+    make('Avg Velo', c.mean_velo==null?'—':c.mean_velo.toFixed(1), 'mph release');
+}
+
+function renderReadout(c){
+  const body = document.getElementById('readout-body');
+  if (!c){ body.textContent = '—'; return; }
+  const trackedN = c.bip_tracked != null ? c.bip_tracked : c.bip;
+  const thin = trackedN < 25;
+  const parts = [];
+
+  if (c.mean_iy != null){
+    if (c.mean_iy <= 27){
+      parts.push(`Contact is <b>deep</b> (${c.mean_iy.toFixed(1)}″) — hitters are <b>late</b>.`);
+    } else if (c.mean_iy >= 35){
+      parts.push(`Contact is <b>out in front</b> (${c.mean_iy.toFixed(1)}″) — hitters are <b>on time or early</b>.`);
+    } else {
+      parts.push(`Contact depth is <b>neutral</b> (${c.mean_iy.toFixed(1)}″).`);
+    }
+  }
+  if (c.xwobacon != null){
+    if (c.xwobacon >= 0.400){
+      parts.push(`When they connect, <b>damage is real</b> (xwOBA ${c.xwobacon.toFixed(3)}).`);
+    } else if (c.xwobacon <= 0.270){
+      parts.push(`Contact quality is <b>weak</b> (xwOBA ${c.xwobacon.toFixed(3)}) — keep going to it.`);
+    } else {
+      parts.push(`Contact quality average (xwOBA ${c.xwobacon.toFixed(3)}).`);
+    }
+  }
+  if (c.gb_pct != null && c.gb_pct >= 0.55){
+    parts.push(`<b>${(c.gb_pct*100).toFixed(0)}% GB</b> rate — worm-killer.`);
+  }
+  if (c.popup_pct != null && c.popup_pct >= 0.12){
+    parts.push(`<b>${(c.popup_pct*100).toFixed(0)}% pop-ups</b> — chase-zone gold.`);
+  }
+  if (thin) parts.push(`<span class="thin-flag">⚠ ${trackedN} BIP w/ bat-tracking — read with caution</span>`);
+  body.innerHTML = parts.join(' ');
+}
+
+// ---------- zone panel (catcher's POV strike zone) ----------
+function renderZone(){
+  const c = document.getElementById('zone-canvas');
+  const { ctx, w, h } = setupCanvas(c);
+  ctx.clearRect(0,0,w,h);
+
+  // Coordinate system: plate_x [-1.5, 1.5], plate_z [1.0, 4.0]
+  // Pad
+  const pad = 36;
+  const xmin=-1.5, xmax=1.5, zmin=1.0, zmax=4.0;
+  const X = x => pad + (x - xmin) / (xmax - xmin) * (w - 2*pad);
+  // catcher's POV: higher z = top of screen
+  const Z = z => h - pad - (z - zmin) / (zmax - zmin) * (h - 2*pad);
+
+  // strike zone (measured average from data)
+  const szXmin = -0.83, szXmax = 0.83;
+  const szZmin = (DATA.sz_bounds && DATA.sz_bounds.bot) || 1.60;
+  const szZmax = (DATA.sz_bounds && DATA.sz_bounds.top) || 3.50;
+  ctx.fillStyle = 'rgba(253,184,39,0.04)';
+  ctx.fillRect(X(szXmin), Z(szZmax), X(szXmax)-X(szXmin), Z(szZmin)-Z(szZmax));
+  ctx.strokeStyle = 'rgba(253,184,39,0.55)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(X(szXmin), Z(szZmax), X(szXmax)-X(szXmin), Z(szZmin)-Z(szZmax));
+  // inner 3x3 thirds
+  ctx.strokeStyle = 'rgba(253,184,39,0.18)';
+  for (let i=1;i<3;i++){
+    const x = szXmin + (szXmax-szXmin)*i/3;
+    const z = szZmin + (szZmax-szZmin)*i/3;
+    ctx.beginPath(); ctx.moveTo(X(x), Z(szZmax)); ctx.lineTo(X(x), Z(szZmin)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(X(szXmin), Z(z)); ctx.lineTo(X(szXmax), Z(z)); ctx.stroke();
+  }
+
+  // grid cells
+  const xe = DATA.grid_meta.x_edges, ze = DATA.grid_meta.z_edges;
+  const cells = DATA.grid.filter(g => g.pitch_type===STATE.pitch && g.stand===STATE.hand);
+  const maxN = cells.reduce((m,g)=>Math.max(m,g.n),0) || 1;
+
+  // pass 1: count cell (bg) sized rectangles
+  for (const g of cells){
+    const xb=g.xb, zb=g.zb;
+    const x0=X(xe[xb]), x1=X(xe[xb+1]);
+    const z0=Z(ze[zb+1]), z1=Z(ze[zb]); // z reversed
+    const cw = x1-x0, ch = z1-z0;
+    const inflate = 0; // full cell
+    // light count shading
+    const cnt = g.n;
+    ctx.fillStyle = `rgba(255,255,255,${0.02 + 0.05*cnt/maxN})`;
+    ctx.fillRect(x0+1, z0+1, cw-2, ch-2);
+
+    // colored damage square scaled by BIP/n
+    if (g.bip > 0 && g.xwobacon != null){
+      const sScale = Math.sqrt(g.bip / Math.max(1, maxN)) * 0.92 + 0.18;
+      const size = Math.min(cw, ch) * sScale;
+      const cx = (x0+x1)/2, cz = (z0+z1)/2;
+      ctx.fillStyle = damageColor(g.xwobacon, 0.88);
+      ctx.fillRect(cx - size/2, cz - size/2, size, size);
+      // n label
+      if (g.bip >= 5){
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.font = '600 10px JetBrains Mono';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(g.bip, cx, cz);
+      }
+    } else if (g.n >= 8){
+      // pitches went there but no contact
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+      ctx.strokeRect(x0+4, z0+4, cw-8, ch-8);
+    }
+  }
+
+  // Handedness annotation
+  ctx.fillStyle = 'rgba(150,150,160,0.7)';
+  ctx.font = '500 11px JetBrains Mono';
+  ctx.textAlign = 'left';  ctx.textBaseline = 'top';
+  ctx.fillText('UP', X(0)-6, Z(zmax)+6);
+  ctx.textAlign = 'left';  ctx.textBaseline = 'bottom';
+  ctx.fillText('DOWN', X(0)-12, Z(zmin)-6);
+  // Inside/Outside labels (mirror by hand)
+  ctx.textBaseline = 'middle';
+  if (STATE.hand === 'L'){
+    // LHH stands on the RIGHT of catcher's POV → inside corner is +plate_x (right of screen)
+    ctx.textAlign = 'left';  ctx.fillText('AWAY ←', pad+4, Z((zmin+zmax)/2));
+    ctx.textAlign = 'right'; ctx.fillText('→ IN', w-pad-4, Z((zmin+zmax)/2));
+  } else {
+    ctx.textAlign = 'left';  ctx.fillText('IN ←', pad+4, Z((zmin+zmax)/2));
+    ctx.textAlign = 'right'; ctx.fillText('→ AWAY', w-pad-4, Z((zmin+zmax)/2));
+  }
+  // hand badge
+  ctx.fillStyle = STATE.hand==='L' ? 'rgba(43,179,198,0.85)' : 'rgba(226,58,58,0.85)';
+  ctx.font = '700 11px JetBrains Mono';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText(STATE.hand==='L' ? 'vs LHH' : 'vs RHH', 12, 10);
+}
+
+// ---------- contact point scatter ----------
+function renderContact(){
+  const c = document.getElementById('contact-canvas');
+  const { ctx, w, h } = setupCanvas(c);
+  ctx.clearRect(0,0,w,h);
+
+  const bip = DATA.bip.filter(b => b.pitch_type===STATE.pitch && b.stand===STATE.hand && b.ix!=null && b.iy!=null);
+
+  // Axes: x = intercept_x (lateral, ~18-60), y = intercept_y (depth, ~5-60)
+  // Statcast frame: positive Y = ball ahead of batter (out in front).
+  // Positive X = ball laterally further from batter's center (end-of-bat side).
+  const pad = 44;
+  const xRange = [12, 60];   // inches lateral
+  const yRange = [0, 60];    // inches depth
+  const X = v => pad + (v - xRange[0]) / (xRange[1]-xRange[0]) * (w - 2*pad);
+  const Y = v => h - pad - (v - yRange[0]) / (yRange[1]-yRange[0]) * (h - 2*pad);
+
+  // ideal contact band (out front, 32-40")
+  ctx.fillStyle = 'rgba(253,184,39,0.05)';
+  ctx.fillRect(pad, Y(40), w-2*pad, Y(32)-Y(40));
+  ctx.strokeStyle = 'rgba(253,184,39,0.22)';
+  ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(pad, Y(32)); ctx.lineTo(w-pad, Y(32)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pad, Y(40)); ctx.lineTo(w-pad, Y(40)); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // gridlines & labels
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.fillStyle = 'rgba(150,150,160,0.65)';
+  ctx.font = '500 10px JetBrains Mono';
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (let y=10; y<=50; y+=10){
+    ctx.beginPath(); ctx.moveTo(pad, Y(y)); ctx.lineTo(w-pad, Y(y)); ctx.stroke();
+    ctx.fillText(y+'″', pad-6, Y(y));
+  }
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  for (let x=20; x<=55; x+=10){
+    ctx.beginPath(); ctx.moveTo(X(x), pad); ctx.lineTo(X(x), h-pad); ctx.stroke();
+    ctx.fillText(x+'″', X(x), h-pad+6);
+  }
+
+  // axis labels
+  ctx.fillStyle = 'rgba(150,150,160,0.85)';
+  ctx.font='600 10px JetBrains Mono';
+  ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText('OUT IN FRONT ↑', pad+4, pad+4);
+  ctx.textBaseline='bottom';
+  ctx.fillText('↓ DEEP / JAMMED', pad+4, h-pad-4);
+  ctx.textAlign='center';
+  ctx.fillText('depth (in)  ·  lateral →', w/2, h-4);
+
+  // Points
+  for (const b of bip){
+    const x = X(b.ix), y = Y(b.iy);
+    const xw = b.xwobacon;
+    const r = xw==null ? 3.5 : 3 + Math.min(7, (xw)*8);
+    ctx.fillStyle = damageColor(xw, 0.78);
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+    ctx.lineWidth = 0.6;
+    ctx.stroke();
+  }
+
+  // Centroid
+  if (bip.length >= 3){
+    const cx = bip.reduce((s,b)=>s+b.ix,0)/bip.length;
+    const cy = bip.reduce((s,b)=>s+b.iy,0)/bip.length;
+    const cxw = bip.filter(b=>b.xwobacon!=null).reduce((s,b)=>s+b.xwobacon,0)/bip.filter(b=>b.xwobacon!=null).length;
+    ctx.fillStyle = '#fdb827';
+    ctx.beginPath(); ctx.arc(X(cx), Y(cy), 8, 0, Math.PI*2); ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = '#0c0d10';
+    ctx.beginPath(); ctx.arc(X(cx), Y(cy), 8, 0, Math.PI*2); ctx.stroke();
+    ctx.fillStyle = '#fdb827';
+    ctx.font = '700 10px JetBrains Mono';
+    ctx.textAlign='left'; ctx.textBaseline='middle';
+    ctx.fillText(`μ ${cy.toFixed(1)}″ depth`, X(cx)+12, Y(cy));
+  } else {
+    ctx.fillStyle = 'rgba(180,180,190,0.45)';
+    ctx.font = '500 11px JetBrains Mono';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(`${bip.length} BIP — insufficient sample`, w/2, h/2);
+  }
+
+  // batter side badge
+  ctx.fillStyle = STATE.hand==='L' ? 'rgba(43,179,198,0.85)' : 'rgba(226,58,58,0.85)';
+  ctx.font = '700 11px JetBrains Mono';
+  ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+  ctx.fillText(STATE.hand==='L' ? 'vs LHH' : 'vs RHH', w-12, 10);
+}
+
+// ---------- depth → damage panel ----------
+function renderDepth(){
+  const c = document.getElementById('depth-canvas');
+  const { ctx, w, h } = setupCanvas(c);
+  ctx.clearRect(0,0,w,h);
+
+  const bip = DATA.bip.filter(b => b.pitch_type===STATE.pitch && b.stand===STATE.hand && b.iy!=null && b.xwobacon!=null);
+
+  const pad = { l: 50, r: 60, t: 18, b: 32 };
+  const xR = [12, 52];   // depth inches
+  const yR = [0, 1.0];   // xwoba scale
+  const X = v => pad.l + (v - xR[0])/(xR[1]-xR[0]) * (w - pad.l - pad.r);
+  const Y = v => h - pad.b - (v - yR[0])/(yR[1]-yR[0]) * (h - pad.t - pad.b);
+
+  // bin by 4 inch
+  const binW = 4;
+  const bins = {};
+  for (const b of bip){
+    const k = Math.floor((b.iy - xR[0])/binW);
+    if (k < 0 || k > (xR[1]-xR[0])/binW) continue;
+    if (!bins[k]) bins[k] = { sum:0, n:0, evs:[], xw:[] };
+    bins[k].xw.push(b.xwobacon);
+    bins[k].n++;
+  }
+
+  // bar count axis (right)
+  const maxN = Math.max(1, ...Object.values(bins).map(b=>b.n));
+  const yN = n => h - pad.b - (n/maxN) * (h - pad.t - pad.b);
+
+  // grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.fillStyle = 'rgba(150,150,160,0.65)';
+  ctx.font = '500 10px JetBrains Mono';
+  ctx.textAlign='right'; ctx.textBaseline='middle';
+  for (let yv=0; yv<=1.0; yv+=0.2){
+    ctx.beginPath(); ctx.moveTo(pad.l, Y(yv)); ctx.lineTo(w-pad.r, Y(yv)); ctx.stroke();
+    ctx.fillText(yv.toFixed(1), pad.l-6, Y(yv));
+  }
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  for (let xv=15; xv<=50; xv+=5){
+    ctx.beginPath(); ctx.moveTo(X(xv), pad.t); ctx.lineTo(X(xv), h-pad.b); ctx.stroke();
+    ctx.fillText(xv+'″', X(xv), h-pad.b+6);
+  }
+  // axis labels
+  ctx.fillStyle = 'rgba(150,150,160,0.85)';
+  ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText('xwOBA on contact →', pad.l, pad.t-12);
+  ctx.textAlign='right'; ctx.fillText('← BIP count', w-pad.r+45, pad.t-12);
+
+  // BARS (count)
+  const binPxW = (w - pad.l - pad.r) / ((xR[1]-xR[0])/binW);
+  for (const [k, b] of Object.entries(bins)){
+    const x = pad.l + (k * binPxW);
+    const y = yN(b.n);
+    ctx.fillStyle = 'rgba(253,184,39,0.18)';
+    ctx.fillRect(x+2, y, binPxW-4, h - pad.b - y);
+    ctx.fillStyle = 'rgba(253,184,39,0.55)';
+    ctx.font = '600 9.5px JetBrains Mono';
+    ctx.textAlign='center'; ctx.textBaseline='bottom';
+    if (b.n >= 3) ctx.fillText(b.n, x + binPxW/2, y - 2);
+  }
+
+  // LINE (mean xwoba per bin)
+  const sorted = Object.keys(bins).map(Number).sort((a,b)=>a-b);
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#fdb827';
+  ctx.beginPath();
+  let first = true;
+  for (const k of sorted){
+    if (bins[k].n < 3) continue;
+    const mean = bins[k].xw.reduce((s,v)=>s+v,0)/bins[k].xw.length;
+    const cx = pad.l + (k+0.5)*binPxW;
+    const cy = Y(mean);
+    if (first){ ctx.moveTo(cx, cy); first = false; } else { ctx.lineTo(cx, cy); }
+  }
+  ctx.stroke();
+  // dots on line
+  for (const k of sorted){
+    if (bins[k].n < 3) continue;
+    const mean = bins[k].xw.reduce((s,v)=>s+v,0)/bins[k].xw.length;
+    const cx = pad.l + (k+0.5)*binPxW;
+    const cy = Y(mean);
+    ctx.fillStyle = damageColor(mean, 1);
+    ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#0c0d10';
+    ctx.lineWidth = 1.5; ctx.stroke();
+  }
+
+  // ideal band tint
+  ctx.fillStyle = 'rgba(43,179,198,0.06)';
+  ctx.fillRect(pad.l, pad.t, X(28)-pad.l, h-pad.t-pad.b);
+  ctx.fillStyle = 'rgba(43,179,198,0.6)';
+  ctx.font='600 10px JetBrains Mono';
+  ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText('JAM ZONE (deep)', pad.l+6, pad.t+4);
+  ctx.fillStyle = 'rgba(226,58,58,0.6)';
+  ctx.textAlign='right';
+  ctx.fillText('BARRELED (out front)', w-pad.r-6, pad.t+4);
+
+  // legend
+  ctx.fillStyle = 'rgba(150,150,160,0.8)';
+  ctx.font='500 10px JetBrains Mono';
+  ctx.textAlign='right'; ctx.textBaseline='bottom';
+  ctx.fillText('depth (inches in front of batter) →', w-pad.r, h-4);
+}
+
+init();
+</script>
+
+</body>
+</html>
